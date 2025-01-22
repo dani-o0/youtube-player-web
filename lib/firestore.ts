@@ -151,9 +151,32 @@ export async function getList(listId: string): Promise<ListDocument | null> {
   return null
 }
 
-export const deleteVideo = async (videoId: string): Promise<void> => {
-  const videoRef = doc(db, 'videos', videoId)
-  await deleteDoc(videoRef)
+export async function deleteVideo(videoId: string) {
+  try {
+    // First get the video to check if it belongs to a list
+    const videoRef = doc(db, 'videos', videoId);
+    const videoDoc = await getDoc(videoRef);
+    const videoData = videoDoc.data();
+
+    // If the video belongs to a list, update the list
+    if (videoData?.listId) {
+      const listRef = doc(db, 'lists', videoData.listId);
+      const listDoc = await getDoc(listRef);
+      
+      if (listDoc.exists()) {
+        // Remove the video ID from the list's videos array
+        await updateDoc(listRef, {
+          videos: arrayRemove(videoId)
+        });
+      }
+    }
+
+    // Then delete the video document
+    await deleteDoc(videoRef);
+  } catch (error) {
+    console.error('Error in deleteVideo:', error);
+    throw error;
+  }
 }
 
 export const deleteList = async (listId: string): Promise<void> => {
