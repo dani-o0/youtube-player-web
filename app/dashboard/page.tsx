@@ -98,9 +98,9 @@ export default function Dashboard() {
               <div className="text-sm text-gray-500">
                 Added: {new Date(video.createdAt).toLocaleDateString()}
               </div>
-              {video.listId && (
+              {video.listId && listNames[video.listId] && (
                 <div className="text-sm text-gray-500">
-                  In list: {listNames[video.listId] || 'Loading...'}
+                  In list: {listNames[video.listId]}
                 </div>
               )}
             </div>
