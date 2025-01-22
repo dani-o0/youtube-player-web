@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getListVideos, getListDetails } from '@/lib/firestore'
+import { getListVideos, getListDetails, deleteVideo, updateList } from '@/lib/firestore'
 import type { VideoDocument, ListDocument } from '@/types/database'
-import { FaHeart, FaArrowLeft } from 'react-icons/fa'
+import { FaHeart, FaArrowLeft, FaTrash } from 'react-icons/fa'
 import { VideoEmbed } from '@/components/VideoEmbed'
 
 export default function ListVideos() {
@@ -16,11 +16,13 @@ export default function ListVideos() {
   const listId = params.listId as string
 
   useEffect(() => {
+    if (!params.listId) return
+    
     const fetchData = async () => {
       try {
         const [videosData, listData] = await Promise.all([
-          getListVideos(listId),
-          getListDetails(listId)
+          getListVideos(params.listId as string),
+          getListDetails(params.listId as string)
         ])
         setVideos(videosData)
         setList(listData)
@@ -32,7 +34,27 @@ export default function ListVideos() {
     }
 
     fetchData()
-  }, [listId])
+  }, [params.listId])
+
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video?')) return
+
+    try {
+      await deleteVideo(videoId)
+      
+      // Update the list's videos array
+      if (list) {
+        const updatedVideos = list.videos.filter(v => v !== videoId)
+        await updateList(listId, { videos: updatedVideos })
+      }
+      
+      // Update the UI
+      setVideos(videos.filter(v => v.id !== videoId))
+    } catch (error) {
+      console.error('Error deleting video:', error)
+      alert('Error deleting video')
+    }
+  }
 
   if (loading) {
     return (
@@ -66,9 +88,18 @@ export default function ListVideos() {
                   <h2 className="font-bold text-lg mb-2 truncate flex-1">
                     {video.title}
                   </h2>
-                  {video.isFavorite && (
-                    <FaHeart className="text-red-500 flex-shrink-0 ml-2" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {video.isFavorite && (
+                      <FaHeart className="text-red-500 flex-shrink-0" />
+                    )}
+                    <button
+                      onClick={() => handleDeleteVideo(video.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      title="Delete video"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="text-sm text-gray-500">
                   Added: {new Date(video.createdAt).toLocaleDateString()}

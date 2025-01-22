@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { getUserVideos, getList } from '@/lib/firestore'
+import { getUserVideos, getList, deleteVideo } from '@/lib/firestore'
 import type { VideoDocument } from '@/types/database'
-import { FaHeart } from 'react-icons/fa'
+import { FaHeart, FaTrash } from 'react-icons/fa'
 import { VideoEmbed } from '@/components/VideoEmbed'
 
 export default function Dashboard() {
@@ -27,9 +27,11 @@ export default function Dashboard() {
         
         await Promise.all(
           uniqueListIds.map(async (listId) => {
-            const list = await getList(listId)
-            if (list) {
-              listNamesMap[listId] = list.name
+            if (typeof listId === 'string') {
+              const list = await getList(listId)
+              if (list) {
+                listNamesMap[listId] = list.name
+              }
             }
           })
         )
@@ -44,6 +46,19 @@ export default function Dashboard() {
 
     fetchVideos()
   }, [user])
+
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video?')) return
+
+    try {
+      await deleteVideo(videoId)
+      // Update the UI by removing the deleted video
+      setVideos(videos.filter(v => v.id !== videoId))
+    } catch (error) {
+      console.error('Error deleting video:', error)
+      alert('Error deleting video')
+    }
+  }
 
   if (loading) {
     return (
@@ -67,9 +82,18 @@ export default function Dashboard() {
                 <h2 className="font-bold text-lg mb-2 truncate flex-1">
                   {video.title}
                 </h2>
-                {video.isFavorite && (
-                  <FaHeart className="text-red-500 flex-shrink-0 ml-2" />
-                )}
+                <div className="flex items-center gap-2">
+                  {video.isFavorite && (
+                    <FaHeart className="text-red-500 flex-shrink-0" />
+                  )}
+                  <button
+                    onClick={() => handleDeleteVideo(video.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Delete video"
+                  >
+                    <FaTrash className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="text-sm text-gray-500">
                 Added: {new Date(video.createdAt).toLocaleDateString()}

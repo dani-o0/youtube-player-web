@@ -143,11 +143,21 @@ export const updateList = async (listId: string, data: Partial<ListDocument>) =>
   await updateDoc(listRef, data)
 }
 
-export async function getList(listId: string) {
+export async function getList(listId: string): Promise<ListDocument | null> {
   const listDoc = await getDoc(doc(db, 'lists', listId))
   if (listDoc.exists()) {
-    return { id: listDoc.id, ...listDoc.data() }
+    return { id: listDoc.id, ...listDoc.data() } as ListDocument
   }
   return null
+}
+
+export const deleteVideo = async (videoId: string): Promise<void> => {
+  const videoRef = doc(db, 'videos', videoId)
+  await deleteDoc(videoRef)
+}
+
+export const deleteList = async (listId: string): Promise<void> => {
+  const listRef = doc(db, 'lists', listId)
+  await deleteDoc(listRef)
 }
 
